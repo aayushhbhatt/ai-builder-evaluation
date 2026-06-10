@@ -36,20 +36,90 @@ def load_text_file(path: str) -> str:
     return Path(path).read_text(encoding="utf-8")
 
 
+def get_review_status(rubric: dict) -> str:
+    """Return a display-only status derived from existing reviewer state."""
+    reviewer_assessment = st.session_state.get("reviewer_assessment", {})
+    for dimension in rubric["dimensions"].values():
+        assessment = reviewer_assessment.get(dimension["id"], {})
+        if (
+            assessment.get("manual_signal", "Not assessed") != "Not assessed"
+            or assessment.get("reviewer_notes", "").strip()
+        ):
+            return "In progress"
+    return "Not started"
+
+
+def get_workflow_statuses(submission_text: str, rubric: dict) -> dict:
+    """Build compact status labels without creating new workflow state."""
+    return {
+        "Submission": "Ready" if submission_text.strip() else "Not provided",
+        "AI Evidence": (
+            "Extracted"
+            if st.session_state.get("extraction")
+            or st.session_state.get("verified_extraction")
+            else "Not extracted"
+        ),
+        "Quote Verification": (
+            "Complete" if st.session_state.get("verified_extraction") else "Pending"
+        ),
+        "Human Review": get_review_status(rubric),
+        "Export": "Ready" if st.session_state.get("markdown_report") else "Not generated",
+    }
+
+
+def render_workflow_indicator(statuses: dict) -> None:
+    """Render a compact, display-only workflow indicator."""
+    st.caption("Workflow: Submission → AI Evidence → Quote Verification → Human Review → Export")
+    columns = st.columns(len(statuses))
+    for column, (stage, status) in zip(columns, statuses.items()):
+        with column:
+            st.markdown(f"**{stage}**")
+            st.caption(status)
+
+
+def render_sidebar(selection: str, submission_text: str, rubric: dict) -> None:
+    """Render sidebar context and display-only status."""
+    with st.sidebar:
+        st.divider()
+        with st.expander("Scenario", expanded=False):
+            st.markdown(f"**{SCENARIO_TITLE}**")
+            st.write(SCENARIO)
+
+        st.subheader("Review Status")
+        statuses = get_workflow_statuses(submission_text, rubric)
+        for stage, status in statuses.items():
+            st.caption(f"**{stage}:** {status}")
+
+        st.divider()
+        st.subheader("Responsible AI Reminder")
+        st.info("AI extracts evidence. Code checks quote presence. Humans make judgments.")
+
+
+def render_page_header(statuses: dict) -> None:
+    """Render first-load context, boundaries, and workflow status."""
+    st.title(APP_TITLE)
+    st.subheader("Human-led review supported by AI-assisted evidence extraction")
+    st.info(DESIGN_PRINCIPLE, icon="🖍️")
+    st.warning(DECISION_BOUNDARY, icon="⚠️")
+    render_workflow_indicator(statuses)
+    st.divider()
+
+
 def render_extraction_section(extraction: dict) -> None:
     """Render verified AI-assisted evidence separately from reviewer inputs."""
-    st.header("AI-Assisted Evidence Extraction with Quote Verification")
-    st.warning(
-        "AI-extracted quotes are checked using deterministic substring verification. "
-        "Reviewers should still inspect evidence before relying on it.",
-        icon="⚠️",
+    st.header("2. AI Evidence")
+    st.caption(
+        "AI-assisted evidence is organized by rubric dimension. Quote checks are "
+        "deterministic substring checks against the source submission."
     )
 
     candidate_summary = extraction.get("candidate_summary")
     if candidate_summary:
-        st.subheader("Candidate Summary")
-        st.write(candidate_summary)
+        with st.container(border=True):
+            st.subheader("AI-Assisted Candidate Summary")
+            st.write(candidate_summary)
 
+    st.subheader("Evidence by Rubric Dimension")
     for dimension in extraction.get("dimensions", []):
         dimension_name = dimension.get(
             "dimension_name", dimension.get("dimension_id", "Rubric dimension")
@@ -59,13 +129,15 @@ def render_extraction_section(extraction: dict) -> None:
 
             evidence_items = dimension.get("evidence", [])
             if evidence_items:
-                st.markdown("**Extracted evidence**")
+                st.markdown("**Evidence items**")
                 for index, evidence in enumerate(evidence_items, start=1):
                     st.markdown(f"**Claim {index}:** {evidence.get('claim', '')}")
                     quote = evidence.get("quote", "")
                     if quote:
+                        st.markdown("**Quote:**")
                         st.markdown(f"> {quote}")
                     st.markdown(f"**Relevance:** {evidence.get('relevance', '')}")
+
                     verification = evidence.get("verification", {})
                     verification_message = verification.get(
                         "message",
@@ -75,11 +147,20 @@ def render_extraction_section(extraction: dict) -> None:
                         ),
                     )
                     if verification.get("verified"):
-                        st.success(verification_message, icon="✅")
+                        st.success(
+                            "✅ Verified — quote found in source submission",
+                            icon="✅",
+                        )
                     else:
-                        st.warning(verification_message, icon="⚠️")
+                        st.warning(
+                            "⚠️ Unverified — reviewer inspection required",
+                            icon="⚠️",
+                        )
+                    st.caption(verification_message)
+                    if index < len(evidence_items):
+                        st.divider()
             else:
-                st.caption("No evidence extracted for this dimension.")
+                st.info("No evidence extracted for this dimension.")
 
             missing_or_weak = dimension.get("missing_or_weak_evidence", [])
             if missing_or_weak:
@@ -89,15 +170,16 @@ def render_extraction_section(extraction: dict) -> None:
 
             follow_up_questions = dimension.get("follow_up_questions", [])
             if follow_up_questions:
-                st.markdown("**Follow-up questions**")
+                st.markdown("**Suggested follow-up questions**")
                 for question in follow_up_questions:
                     st.markdown(f"- {question}")
 
     overall_questions = extraction.get("overall_follow_up_questions", [])
     if overall_questions:
-        st.subheader("Overall Follow-Up Questions")
-        for question in overall_questions:
-            st.markdown(f"- {question}")
+        with st.container(border=True):
+            st.subheader("Overall Follow-Up Questions")
+            for question in overall_questions:
+                st.markdown(f"- {question}")
 
     boundary_notice = extraction.get("ai_boundary_notice")
     if boundary_notice:
@@ -106,11 +188,8 @@ def render_extraction_section(extraction: dict) -> None:
 
 def render_reviewer_section(rubric: dict) -> None:
     """Render manual reviewer controls for each rubric dimension."""
-    st.header("Reviewer Section")
-    st.caption(
-        "Manual signals and notes are human-entered. The LLM does not assign "
-        "reviewer signals or write reviewer notes."
-    )
+    st.header("3. Human Review")
+    st.caption("Signals and notes in this section are entered by the human reviewer.")
 
     reviewer_assessment = st.session_state.setdefault("reviewer_assessment", {})
 
@@ -120,7 +199,7 @@ def render_reviewer_section(rubric: dict) -> None:
             st.subheader(dimension["name"])
             st.write(dimension["description"])
 
-            with st.expander("Rubric anchors"):
+            with st.expander("Behavioral anchors"):
                 st.markdown(f"**Weak:** {dimension['weak_anchor']}")
                 st.markdown(f"**Solid:** {dimension['solid_anchor']}")
                 st.markdown(f"**Strong:** {dimension['strong_anchor']}")
@@ -180,17 +259,58 @@ def reset_submission_state_if_changed(
         st.session_state.pop(f"notes_{dimension_id}", None)
 
 
+def render_submission_section(selection: str, rubric: dict) -> str:
+    """Render submission input and extraction action while preserving widget behavior."""
+    st.header("1. Submission")
+    st.caption("Select or paste a candidate submission to begin, then extract evidence for human review.")
+
+    if selection in SAMPLE_PATHS:
+        submission_text = load_text_file(SAMPLE_PATHS[selection])
+    else:
+        submission_text = ""
+
+    submission_text = st.text_area(
+        "Work sample text",
+        value=submission_text,
+        height=360,
+        key=f"submission_text_{selection}",
+        placeholder="Paste a synthetic or anonymized AI Builder work sample here.",
+    )
+
+    st.caption(f"Submission characters: {len(submission_text)}")
+    if not submission_text.strip():
+        st.info("Select or paste a candidate submission to begin.")
+
+    reset_submission_state_if_changed(selection, submission_text, rubric)
+
+    if st.button("Extract Evidence"):
+        st.session_state.pop("extraction", None)
+        st.session_state.pop("verified_extraction", None)
+        st.session_state.pop("markdown_report", None)
+        with st.spinner("Extracting and verifying evidence for human review..."):
+            try:
+                extraction = extract_evidence(submission_text, rubric)
+                st.session_state["extraction"] = extraction
+                st.session_state["verified_extraction"] = verify_extraction(
+                    extraction, submission_text
+                )
+            except RuntimeError as error:
+                st.error(str(error))
+
+    return submission_text
+
+
 def render_report_export_section(rubric: dict, selection: str) -> None:
     """Render Markdown report generation, preview, and download controls."""
-    st.header("Review Summary Export")
+    st.header("4. Export")
     st.caption(
-        "The export summarizes AI-assisted evidence, deterministic quote verification, "
-        "and human-entered reviewer assessment. It does not add an automated decision."
+        "The review summary combines AI-assisted evidence, deterministic quote "
+        "verification, and human-entered reviewer assessment."
     )
 
     verified_extraction = st.session_state.get("verified_extraction")
     if not verified_extraction:
-        st.info("Generate verified evidence before creating a Markdown review summary.")
+        st.info("Complete evidence extraction and generate a review summary.")
         return
 
     if st.button("Generate Review Summary"):
@@ -217,17 +337,12 @@ def render_report_export_section(rubric: dict, selection: str) -> None:
             file_name="ai_builder_review_summary.md",
             mime="text/markdown",
         )
+    else:
+        st.info("No report yet. Generate a review summary when the human review notes are ready.")
 
 
 def main() -> None:
     st.set_page_config(page_title=APP_TITLE, page_icon="📝", layout="wide")
-    st.title(APP_TITLE)
-
-    st.warning(DECISION_BOUNDARY, icon="⚠️")
-    st.info(DESIGN_PRINCIPLE, icon="🖍️")
-
-    st.header(SCENARIO_TITLE)
-    st.write(SCENARIO)
 
     try:
         rubric = load_rubric(RUBRIC_PATH)
@@ -235,6 +350,7 @@ def main() -> None:
         st.error(str(error))
         st.stop()
 
+    st.sidebar.subheader("Submission Source")
     selection = st.sidebar.radio(
         "Submission source",
         [
@@ -244,44 +360,39 @@ def main() -> None:
         ],
     )
 
-    if selection in SAMPLE_PATHS:
-        submission_text = load_text_file(SAMPLE_PATHS[selection])
-    else:
-        submission_text = ""
+    default_submission_text = (
+        load_text_file(SAMPLE_PATHS[selection]) if selection in SAMPLE_PATHS else ""
+    )
+    active_submission_text = st.session_state.get(
+        f"submission_text_{selection}", default_submission_text
+    )
+    header_statuses = get_workflow_statuses(active_submission_text, rubric)
+    render_page_header(header_statuses)
 
-    st.header("Submission")
-    submission_text = st.text_area(
-        "Work sample text",
-        value=submission_text,
-        height=360,
-        key=f"submission_text_{selection}",
-        placeholder="Paste a synthetic or anonymized AI Builder work sample here.",
+    submission_tab, evidence_tab, review_tab, export_tab = st.tabs(
+        ["1. Submission", "2. AI Evidence", "3. Human Review", "4. Export"]
     )
 
-    reset_submission_state_if_changed(selection, submission_text, rubric)
+    with submission_tab:
+        submission_text = render_submission_section(selection, rubric)
 
-    if st.button("Extract Evidence"):
-        st.session_state.pop("extraction", None)
-        st.session_state.pop("verified_extraction", None)
-        st.session_state.pop("markdown_report", None)
-        with st.spinner("Extracting and verifying evidence for human review..."):
-            try:
-                extraction = extract_evidence(submission_text, rubric)
-                st.session_state["extraction"] = extraction
-                st.session_state["verified_extraction"] = verify_extraction(
-                    extraction, submission_text
-                )
-            except RuntimeError as error:
-                st.error(str(error))
+    render_sidebar(selection, submission_text, rubric)
 
-    if st.session_state.get("verified_extraction"):
-        render_extraction_section(st.session_state["verified_extraction"])
-    elif st.session_state.get("extraction"):
-        render_extraction_section(st.session_state["extraction"])
+    with evidence_tab:
+        verified_extraction = st.session_state.get("verified_extraction")
+        if verified_extraction:
+            render_extraction_section(verified_extraction)
+        elif st.session_state.get("extraction"):
+            render_extraction_section(st.session_state["extraction"])
+        else:
+            st.header("2. AI Evidence")
+            st.info("Run evidence extraction from the Submission tab.")
 
-    render_reviewer_section(rubric)
+    with review_tab:
+        render_reviewer_section(rubric)
 
-    render_report_export_section(rubric, selection)
+    with export_tab:
+        render_report_export_section(rubric, selection)
 
     st.divider()
     st.caption(
