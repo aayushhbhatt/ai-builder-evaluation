@@ -13,7 +13,6 @@ DECISION_BOUNDARY = (
     "This tool does not rank, reject, recommend, or select candidates. "
     "Human reviewers remain responsible for all evaluation judgments."
 )
-DESIGN_PRINCIPLE = "AI replaces the reviewer’s highlighter, not the reviewer."
 RUBRIC_PATH = "criteria/ai_builder_rubric.yaml"
 SAMPLE_PATHS = {
     "Strong synthetic submission": "sample_submissions/strong_submission.txt",
@@ -84,21 +83,22 @@ def apply_dark_theme() -> None:
         textarea::placeholder, input::placeholder {
             color: #94a3b8 !important;
         }
-        .workflow-chip {
-            border: 1px solid #334155;
-            border-radius: 0.5rem;
-            padding: 0.45rem 0.6rem;
-            background: #111827;
-            min-height: 3.5rem;
+        div.stButton > button,
+        div.stDownloadButton > button {
+            background: #f8fafc !important;
+            color: #111827 !important;
+            border: 1px solid #cbd5e1 !important;
+            font-weight: 700 !important;
         }
-        .workflow-chip strong {
-            color: #f8fafc;
-            display: block;
-            font-size: 0.9rem;
+        div.stButton > button:hover,
+        div.stDownloadButton > button:hover {
+            background: #e2e8f0 !important;
+            color: #020617 !important;
+            border-color: #f8fafc !important;
         }
-        .workflow-chip span {
-            color: #cbd5e1;
-            font-size: 0.8rem;
+        div.stButton > button p,
+        div.stDownloadButton > button p {
+            color: #111827 !important;
         }
         .compact-boundary {
             border-left: 4px solid #f59e0b;
@@ -112,79 +112,23 @@ def apply_dark_theme() -> None:
         unsafe_allow_html=True,
     )
 
-def get_review_status(rubric: dict) -> str:
-    """Return a display-only status derived from existing reviewer state."""
-    reviewer_assessment = st.session_state.get("reviewer_assessment", {})
-    for dimension in rubric["dimensions"].values():
-        assessment = reviewer_assessment.get(dimension["id"], {})
-        if (
-            assessment.get("manual_signal", "Not assessed") != "Not assessed"
-            or assessment.get("reviewer_notes", "").strip()
-        ):
-            return "In progress"
-    return "Not started"
-
-
-def get_workflow_statuses(submission_text: str, rubric: dict) -> dict:
-    """Build compact status labels without creating new workflow state."""
-    return {
-        "Submission": "Ready" if submission_text.strip() else "Not provided",
-        "AI Evidence": (
-            "Extracted"
-            if st.session_state.get("extraction")
-            or st.session_state.get("verified_extraction")
-            else "Not extracted"
-        ),
-        "Quote Verification": (
-            "Complete" if st.session_state.get("verified_extraction") else "Pending"
-        ),
-        "Human Review": get_review_status(rubric),
-        "Export": (
-            "Ready" if st.session_state.get("markdown_report") else "Not generated"
-        ),
-    }
-
-
-def render_workflow_indicator(statuses: dict) -> None:
-    """Render a compact, display-only workflow indicator."""
-    columns = st.columns(len(statuses))
-    for column, (stage, status) in zip(columns, statuses.items()):
-        with column:
-            st.markdown(
-                (
-                    f'<div class="workflow-chip"><strong>{stage}</strong>'
-                    f'<span>{status}</span></div>'
-                ),
-                unsafe_allow_html=True,
-            )
-
-
 def render_sidebar() -> None:
-    """Render sidebar context without duplicating the main workflow."""
+    """Render compact sidebar context without redundant page callouts."""
     with st.sidebar:
         st.divider()
         with st.expander("Scenario", expanded=False):
             st.markdown(f"**{SCENARIO_TITLE}**")
             st.write(SCENARIO)
 
-        st.info(
-            "AI extracts evidence. Code checks quote presence. Humans make judgments."
-        )
 
-
-def render_page_header(statuses: dict) -> None:
-    """Render first-load context, boundaries, and workflow status."""
-    title_column, boundary_column = st.columns([1.05, 1])
-    with title_column:
-        st.title(APP_TITLE)
-        st.caption("Human-led review supported by AI-assisted evidence extraction")
-        st.markdown(f"**{DESIGN_PRINCIPLE}**")
-    with boundary_column:
-        st.markdown(
-            f'<div class="compact-boundary">{DECISION_BOUNDARY}</div>',
-            unsafe_allow_html=True,
-        )
-    render_workflow_indicator(statuses)
+def render_page_header() -> None:
+    """Render compact first-load context and the required decision boundary."""
+    st.title(APP_TITLE)
+    st.caption("Human-led review supported by AI-assisted evidence extraction")
+    st.markdown(
+        f'<div class="compact-boundary">{DECISION_BOUNDARY}</div>',
+        unsafe_allow_html=True,
+    )
     st.divider()
 
 
@@ -274,10 +218,9 @@ def render_reviewer_section(rubric: dict) -> None:
 
     reviewer_assessment = st.session_state.setdefault("reviewer_assessment", {})
 
-    for dimension in rubric["dimensions"].values():
+    for dimension_index, dimension in enumerate(rubric["dimensions"].values()):
         dimension_id = dimension["id"]
-        with st.container(border=True):
-            st.subheader(dimension["name"])
+        with st.expander(dimension["name"], expanded=dimension_index == 0):
             st.write(dimension["description"])
 
             with st.expander("Behavioral anchors"):
@@ -446,22 +389,19 @@ def main() -> None:
         ],
     )
 
-    default_submission_text = (
-        load_text_file(SAMPLE_PATHS[selection]) if selection in SAMPLE_PATHS else ""
-    )
-    active_submission_text = st.session_state.get(
-        f"submission_text_{selection}", default_submission_text
-    )
-    header_statuses = get_workflow_statuses(active_submission_text, rubric)
-    render_page_header(header_statuses)
-
-    top_left, top_right = st.columns([0.95, 1.05], gap="large")
-    with top_left:
-        submission_text = render_submission_section(selection, rubric)
-
+    render_page_header()
     render_sidebar()
 
-    with top_right:
+    submission_column, evidence_column, review_column = st.columns(
+        [0.92, 1.08, 1.0], gap="large"
+    )
+
+    with submission_column:
+        submission_text = render_submission_section(selection, rubric)
+        st.divider()
+        render_report_export_section(rubric, selection)
+
+    with evidence_column:
         verified_extraction = st.session_state.get("verified_extraction")
         if verified_extraction:
             render_extraction_section(verified_extraction)
@@ -469,16 +409,10 @@ def main() -> None:
             render_extraction_section(st.session_state["extraction"])
         else:
             st.header("2. AI Evidence")
-            st.info(
-                "Run evidence extraction after reviewing the submission on the left."
-            )
+            st.info("Run evidence extraction after reviewing the submission.")
 
-    st.divider()
-    review_column, export_column = st.columns([1.1, 0.9], gap="large")
     with review_column:
         render_reviewer_section(rubric)
-    with export_column:
-        render_report_export_section(rubric, selection)
 
 
 if __name__ == "__main__":

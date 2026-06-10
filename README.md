@@ -8,10 +8,9 @@ AI Builder Reviewer Workbench is a local Streamlit MVP for helping human reviewe
 
 The workbench supports reviewers who need a consistent way to inspect AI Builder submissions against a shared rubric. The intended UI flow is:
 
-1. **Submission:** Load or paste a synthetic work sample and run evidence extraction in the left pane.
-2. **AI Evidence:** Inspect AI-assisted evidence and deterministic quote verification in the adjacent evidence pane.
-3. **Human Review:** Record manual signals and reviewer notes in the human review section below.
-4. **Export:** Generate, preview, and download a Markdown audit summary from the export section.
+1. **Submission and Export:** Load or paste a synthetic work sample, run evidence extraction, and generate the Markdown summary from the left column.
+2. **AI Evidence:** Inspect AI-assisted evidence and deterministic quote verification in the center column.
+3. **Human Review:** Record manual signals and reviewer notes in the right column.
 
 The AI extraction is only a reviewer aid. Human reviewers remain responsible for all consequential judgments.
 
@@ -75,12 +74,12 @@ streamlit run app.py
 
 ## Demo Flow
 
-1. Run the Streamlit app and note the dark, single-screen layout with the decision boundary visible in the header.
+1. Run the Streamlit app and note the dark, single-screen workspace with the decision boundary visible in the header.
 2. In the sidebar, select a synthetic submission or choose the custom submission option.
-3. In **1. Submission**, review or paste the work sample and select **Extract Evidence**.
-4. In **2. AI Evidence**, inspect the AI-assisted summary, rubric-dimension evidence, and verified/unverified quote labels.
-5. In **3. Human Review**, enter human reviewer signals and notes.
-6. In **4. Export**, generate, preview, and download the Markdown summary.
+3. In the left column, review or paste the work sample and select **Extract Evidence**.
+4. In the center column, inspect the AI-assisted summary, rubric-dimension evidence, and verified/unverified quote labels.
+5. In the right column, enter human reviewer signals and notes.
+6. Return to the left column export section to generate, preview, and download the Markdown summary.
 
 ## Current Status
 
