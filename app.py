@@ -68,26 +68,35 @@ def apply_dark_theme() -> None:
             color: #f8fafc !important;
         }
         div[data-testid="stVerticalBlockBorderWrapper"],
-        details[data-testid="stExpander"],
-        details[data-testid="stExpander"] summary,
-        details[data-testid="stExpander"] > div,
-        details[data-testid="stExpander"][open],
-        details[data-testid="stExpander"][open] summary,
+        [data-testid="stExpander"],
+        [data-testid="stExpander"] details,
+        [data-testid="stExpander"] summary,
+        [data-testid="stExpander"] details[open],
+        [data-testid="stExpander"] details[open] summary,
+        [data-testid="stExpander"] [data-testid="stExpanderDetails"],
         div[data-testid="stExpanderDetails"] {
             background: #111827 !important;
+            background-color: #111827 !important;
             border-color: #334155 !important;
         }
-        details[data-testid="stExpander"] summary:hover,
-        details[data-testid="stExpander"] summary:focus,
-        details[data-testid="stExpander"] summary:focus-visible,
-        details[data-testid="stExpander"][open] summary:hover,
-        details[data-testid="stExpander"][open] summary:focus,
-        details[data-testid="stExpander"][open] summary:focus-visible {
+        [data-testid="stExpander"] summary:hover,
+        [data-testid="stExpander"] summary:focus,
+        [data-testid="stExpander"] summary:focus-visible,
+        [data-testid="stExpander"] details[open] summary:hover,
+        [data-testid="stExpander"] details[open] summary:focus,
+        [data-testid="stExpander"] details[open] summary:focus-visible {
             background: #111827 !important;
+            background-color: #111827 !important;
             outline-color: #475569 !important;
         }
-        details[data-testid="stExpander"] summary p,
-        details[data-testid="stExpander"] summary svg,
+        [data-testid="stExpander"] details[open] > div,
+        [data-testid="stExpander"] details[open] > div > div,
+        [data-testid="stExpander"] [data-testid="stExpanderDetails"] > div {
+            background: transparent !important;
+            background-color: transparent !important;
+        }
+        [data-testid="stExpander"] summary p,
+        [data-testid="stExpander"] summary svg,
         div[data-testid="stExpanderDetails"] p,
         div[data-testid="stExpanderDetails"] li {
             color: #f8fafc !important;
