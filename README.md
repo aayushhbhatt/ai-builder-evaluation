@@ -1,6 +1,6 @@
 # AI Builder Reviewer Workbench
 
-AI Builder Reviewer Workbench is a local Streamlit MVP for helping human reviewers evaluate AI Builder work samples consistently. The app is designed to extract and organize evidence for manual review in later milestones; it is not designed to make candidate decisions.
+AI Builder Reviewer Workbench is a local Streamlit MVP for helping human reviewers evaluate AI Builder work samples consistently. The app extracts and organizes evidence for manual review; it is not designed to make candidate decisions.
 
 > Design principle: AI replaces the reviewer’s highlighter, not the reviewer.
 
@@ -9,20 +9,24 @@ AI Builder Reviewer Workbench is a local Streamlit MVP for helping human reviewe
 The workbench supports reviewers who need a consistent way to inspect AI Builder submissions against a shared rubric. The intended workflow is:
 
 1. Load or paste a synthetic work sample.
-2. Review the submission against five rubric dimensions.
-3. Record manual signals and reviewer notes.
-4. In future milestones, use AI-generated evidence extraction only as a reviewer aid.
+2. Use AI-assisted extraction to organize candidate-provided evidence by rubric dimension.
+3. Review the submission against five rubric dimensions.
+4. Record manual signals and reviewer notes separately from AI extraction.
+
+The AI extraction is only a reviewer aid. Human reviewers remain responsible for all consequential judgments.
 
 ## MVP Scope
 
-Milestone 2 includes the repo skeleton, Streamlit shell, and rubric-driven reviewer UI:
+Milestone 3 includes the repo skeleton, Streamlit shell, rubric-driven reviewer UI, and LLM evidence extraction:
 
 - Streamlit app with a clear responsible AI decision boundary.
 - Two synthetic sample submissions.
 - YAML rubric with exactly five dimensions.
 - Reviewer UI driven by `criteria/ai_builder_rubric.yaml`.
 - Manual reviewer controls for each rubric dimension.
-- Placeholder modules for extraction, verification, and report generation.
+- LLM-based evidence extraction that returns candidate summary, evidence by rubric dimension, missing or weak evidence, and follow-up questions.
+- Clear warning that extracted quotes are not yet deterministically verified.
+- Placeholder modules for deterministic verification and report generation.
 
 ## Explicit Non-Goals
 
@@ -54,13 +58,13 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Optionally copy the environment template for future OpenAI integration:
+Copy the environment template and add your OpenAI API key before using evidence extraction:
 
 ```bash
 cp .env.example .env
 ```
 
-Milestone 2 does not call the OpenAI API yet.
+Set `OPENAI_API_KEY` in `.env`. `OPENAI_MODEL` defaults to `gpt-4.1-mini` if it is not set.
 
 ## Run Command
 
@@ -70,4 +74,8 @@ streamlit run app.py
 
 ## Current Status
 
-Milestone 2. Rubric registry and reviewer UI are now driven by `criteria/ai_builder_rubric.yaml`. The app runs locally, loads synthetic submissions, validates the YAML rubric through `criteria.py`, and provides manual reviewer controls. Evidence extraction, deterministic quote verification, and full report export are placeholders for future milestones.
+Milestone 3 complete: LLM evidence extraction is implemented. The app runs locally, loads synthetic submissions, validates the YAML rubric through `criteria.py`, provides manual reviewer controls, and can call the OpenAI API to extract structured evidence for human reviewers.
+
+Quote verification is the next milestone. Extracted quotes are currently AI-extracted and have not yet been deterministically verified, so reviewers must inspect them before relying on them.
+
+The app still does not make candidate decisions. It produces no automated score, ranking, recommendation, hire/no-hire decision, rejection, selection, or pass/fail output.
