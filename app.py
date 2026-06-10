@@ -96,9 +96,13 @@ def apply_dark_theme() -> None:
             color: #020617 !important;
             border-color: #f8fafc !important;
         }
-        div.stButton > button p,
-        div.stDownloadButton > button p {
+        div.stButton > button *,
+        div.stDownloadButton > button * {
             color: #111827 !important;
+        }
+        div[role="button"][aria-haspopup="listbox"],
+        div[role="button"][aria-haspopup="listbox"] * {
+            color: #f8fafc !important;
         }
         .compact-boundary {
             border-left: 4px solid #f59e0b;
@@ -112,13 +116,13 @@ def apply_dark_theme() -> None:
         unsafe_allow_html=True,
     )
 
+
 def render_sidebar() -> None:
-    """Render compact sidebar context without redundant page callouts."""
+    """Render compact sidebar context without hiding the scenario in an expander."""
     with st.sidebar:
         st.divider()
-        with st.expander("Scenario", expanded=False):
-            st.markdown(f"**{SCENARIO_TITLE}**")
-            st.write(SCENARIO)
+        st.subheader(SCENARIO_TITLE)
+        st.write(SCENARIO)
 
 
 def render_page_header() -> None:
@@ -392,27 +396,23 @@ def main() -> None:
     render_page_header()
     render_sidebar()
 
-    submission_column, evidence_column, review_column = st.columns(
-        [0.92, 1.08, 1.0], gap="large"
-    )
+    render_submission_section(selection, rubric)
 
-    with submission_column:
-        submission_text = render_submission_section(selection, rubric)
-        st.divider()
-        render_report_export_section(rubric, selection)
+    st.divider()
+    verified_extraction = st.session_state.get("verified_extraction")
+    if verified_extraction:
+        render_extraction_section(verified_extraction)
+    elif st.session_state.get("extraction"):
+        render_extraction_section(st.session_state["extraction"])
+    else:
+        st.header("2. AI Evidence")
+        st.info("Run evidence extraction after reviewing the submission.")
 
-    with evidence_column:
-        verified_extraction = st.session_state.get("verified_extraction")
-        if verified_extraction:
-            render_extraction_section(verified_extraction)
-        elif st.session_state.get("extraction"):
-            render_extraction_section(st.session_state["extraction"])
-        else:
-            st.header("2. AI Evidence")
-            st.info("Run evidence extraction after reviewing the submission.")
+    st.divider()
+    render_reviewer_section(rubric)
 
-    with review_column:
-        render_reviewer_section(rubric)
+    st.divider()
+    render_report_export_section(rubric, selection)
 
 
 if __name__ == "__main__":
