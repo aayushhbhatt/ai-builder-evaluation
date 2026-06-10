@@ -139,6 +139,20 @@ def apply_dark_theme() -> None:
         textarea::placeholder, input::placeholder {
             color: #94a3b8 !important;
         }
+        [data-testid="stTextArea"] textarea:disabled,
+        [data-testid="stTextArea"] textarea[disabled],
+        [data-testid="stTextArea"] textarea[aria-disabled="true"] {
+            background: #020617 !important;
+            color: #f8fafc !important;
+            -webkit-text-fill-color: #f8fafc !important;
+            opacity: 1 !important;
+            border-color: #cbd5e1 !important;
+        }
+        [data-testid="stTextArea"] div:has(textarea:disabled),
+        [data-testid="stTextArea"] div:has(textarea[disabled]),
+        [data-testid="stTextArea"] div:has(textarea[aria-disabled="true"]) {
+            opacity: 1 !important;
+        }
         div.stButton > button,
         div.stDownloadButton > button {
             background: #f8fafc !important;
