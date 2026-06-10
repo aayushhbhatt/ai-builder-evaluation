@@ -1,0 +1,11 @@
+Synthetic AI Builder Work Sample: AI Productivity Tool
+
+I would make an AI app that helps the company work faster. Users could paste information into the app, and the AI would analyze it and provide useful insights. This could apply to sales, operations, hiring, support, or many other business areas.
+
+The app would use a modern language model and a simple interface. It would summarize content, find important points, and tell the user what to do next. The model would be prompted to be accurate and helpful. If needed, we could connect it to company data later.
+
+The workflow is straightforward: a user enters text, clicks a button, and receives an AI-generated result. The result should save time and improve consistency. We could add dashboards, charts, and integrations after the first version.
+
+Risks are low because the app is only providing suggestions. We can tell users to check the AI output. Security can be handled by using approved tools and not sharing anything sensitive. Bias should not be a major issue because the AI is just summarizing information.
+
+The main tradeoff is that a better version would take longer to build, while a quick version may have fewer features. The next step is to build a prototype and see if people like it.

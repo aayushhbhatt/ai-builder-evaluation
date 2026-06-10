@@ -1,0 +1,28 @@
+Synthetic AI Builder Work Sample: Support Triage Evidence Assistant
+
+I would build a local reviewer-facing assistant for an enterprise support operations team that needs to triage incoming customer escalation notes before a weekly quality review. The problem is not "automate support decisions." The narrow workflow is helping a human operations lead identify the parts of each escalation that mention product area, customer impact, urgency, prior troubleshooting, and requested next action.
+
+Scope and artifact
+- Input: one support escalation note pasted by the reviewer.
+- Output: a structured evidence table with short quotes, source line references when available, and a blank reviewer judgment column.
+- Non-goals: no customer severity score, no account ranking, no automated refund decision, and no recommendation about whether an issue should be escalated.
+- Success measure for the MVP: reviewers can find relevant evidence faster while still making the final triage judgment themselves.
+
+Implementation plan
+1. Create a Streamlit prototype with a text area, a small rubric for support evidence categories, and a markdown preview.
+2. Use an LLM only to extract candidate evidence snippets into JSON fields such as product_area, customer_impact, troubleshooting_done, uncertainty, and missing_information.
+3. Run deterministic verification to confirm each quote appears in the original pasted text before showing it as verified.
+4. Show unverified or paraphrased items in a separate "needs reviewer check" section.
+5. Let the human reviewer mark each category as Not assessed, Weak evidence, Adequate evidence, or Strong evidence.
+
+Human-AI handoff
+The AI acts like a highlighter. It can propose evidence snippets, but the reviewer decides whether those snippets are relevant, sufficient, or misleading. The interface should display the original text beside extracted evidence so the reviewer can inspect context before recording notes.
+
+Responsible AI boundaries
+The tool must not generate severity scores, recommend account actions, or hide uncertainty. It should avoid storing customer data by default, support redaction before model calls, and show a warning if the pasted note appears to contain sensitive personal data. If a quote cannot be verified against the source, it should be marked unverified rather than treated as evidence.
+
+Tradeoffs
+A simple text-paste app is less integrated than a ticketing-system plugin, but it is faster to test and avoids premature access to production systems. JSON extraction may miss subtle context, so the first milestone should prioritize transparent evidence display over automation. A later version could add batch upload, but only after reviewer trust and verification quality are measured.
+
+Next steps
+I would run the prototype with five synthetic escalations, compare extracted evidence to reviewer highlights, log false positives and omissions, and revise the extraction schema before any pilot with real support notes.
