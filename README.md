@@ -17,7 +17,7 @@ The AI extraction is only a reviewer aid. Human reviewers remain responsible for
 
 ## MVP Scope
 
-Milestone 3 includes the repo skeleton, Streamlit shell, rubric-driven reviewer UI, and LLM evidence extraction:
+Milestone 4 includes the repo skeleton, Streamlit shell, rubric-driven reviewer UI, LLM evidence extraction, and deterministic quote verification:
 
 - Streamlit app with a clear responsible AI decision boundary.
 - Two synthetic sample submissions.
@@ -25,8 +25,9 @@ Milestone 3 includes the repo skeleton, Streamlit shell, rubric-driven reviewer 
 - Reviewer UI driven by `criteria/ai_builder_rubric.yaml`.
 - Manual reviewer controls for each rubric dimension.
 - LLM-based evidence extraction that returns candidate summary, evidence by rubric dimension, missing or weak evidence, and follow-up questions.
-- Clear warning that extracted quotes are not yet deterministically verified.
-- Placeholder modules for deterministic verification and report generation.
+- Deterministic substring verification that checks whether each extracted quote appears in the original submission.
+- Clear verification status for each extracted evidence item so reviewers can inspect verified and unverified quotes.
+- Placeholder module for report generation.
 
 ## Explicit Non-Goals
 
@@ -74,8 +75,10 @@ streamlit run app.py
 
 ## Current Status
 
-Milestone 3 complete: LLM evidence extraction is implemented. The app runs locally, loads synthetic submissions, validates the YAML rubric through `criteria.py`, provides manual reviewer controls, and can call the OpenAI API to extract structured evidence for human reviewers.
+Milestone 4 complete: deterministic quote verification is implemented. The app runs locally, loads synthetic submissions, validates the YAML rubric through `criteria.py`, provides manual reviewer controls, and can call the OpenAI API to extract structured evidence for human reviewers.
 
-Quote verification is the next milestone. Extracted quotes are currently AI-extracted and have not yet been deterministically verified, so reviewers must inspect them before relying on them.
+AI extracts evidence from the submission. Code then verifies whether each extracted quote appears in the original submission using deterministic normalized substring matching. Verified quotes are marked as found, and unverified quotes are flagged for reviewer inspection before use.
 
-The app still does not make candidate decisions. It produces no automated score, ranking, recommendation, hire/no-hire decision, rejection, selection, or pass/fail output.
+Reviewers still make all evaluation judgments. The app does not make candidate decisions and produces no automated score, ranking, recommendation, hire/no-hire decision, rejection, selection, or pass/fail output.
+
+Report export is the next milestone.

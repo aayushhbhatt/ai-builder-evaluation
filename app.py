@@ -4,6 +4,7 @@ import streamlit as st
 
 from criteria import load_rubric
 from extractor import extract_evidence
+from verifier import verify_extraction
 
 APP_TITLE = "AI Builder Reviewer Workbench"
 DECISION_BOUNDARY = (
@@ -33,11 +34,11 @@ def load_text_file(path: str) -> str:
 
 
 def render_extraction_section(extraction: dict) -> None:
-    """Render AI-assisted evidence extraction separately from reviewer inputs."""
-    st.header("AI-Assisted Evidence Extraction")
+    """Render verified AI-assisted evidence separately from reviewer inputs."""
+    st.header("AI-Assisted Evidence Extraction with Quote Verification")
     st.warning(
-        "Quotes are AI-extracted and have not yet been deterministically verified. "
-        "Reviewer must inspect before relying on them.",
+        "AI-extracted quotes are checked using deterministic substring verification. "
+        "Reviewers should still inspect evidence before relying on it.",
         icon="⚠️",
     )
 
@@ -62,6 +63,18 @@ def render_extraction_section(extraction: dict) -> None:
                     if quote:
                         st.markdown(f"> {quote}")
                     st.markdown(f"**Relevance:** {evidence.get('relevance', '')}")
+                    verification = evidence.get("verification", {})
+                    verification_message = verification.get(
+                        "message",
+                        (
+                            "Unverified: quote verification status is unavailable. "
+                            "Reviewer should inspect before relying on it."
+                        ),
+                    )
+                    if verification.get("verified"):
+                        st.success(verification_message, icon="✅")
+                    else:
+                        st.warning(verification_message, icon="⚠️")
             else:
                 st.caption("No evidence extracted for this dimension.")
 
@@ -160,13 +173,20 @@ def main() -> None:
 
     if st.button("Extract Evidence"):
         st.session_state.pop("extraction", None)
-        with st.spinner("Extracting evidence for human review..."):
+        st.session_state.pop("verified_extraction", None)
+        with st.spinner("Extracting and verifying evidence for human review..."):
             try:
-                st.session_state["extraction"] = extract_evidence(submission_text, rubric)
+                extraction = extract_evidence(submission_text, rubric)
+                st.session_state["extraction"] = extraction
+                st.session_state["verified_extraction"] = verify_extraction(
+                    extraction, submission_text
+                )
             except RuntimeError as error:
                 st.error(str(error))
 
-    if st.session_state.get("extraction"):
+    if st.session_state.get("verified_extraction"):
+        render_extraction_section(st.session_state["verified_extraction"])
+    elif st.session_state.get("extraction"):
         render_extraction_section(st.session_state["extraction"])
 
     render_reviewer_section(rubric)
