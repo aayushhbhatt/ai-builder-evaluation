@@ -6,14 +6,12 @@ AI Builder Reviewer Workbench is a local Streamlit MVP for helping human reviewe
 
 ## Project Purpose
 
-The workbench supports reviewers who need a consistent way to inspect AI Builder submissions against a shared rubric. The intended workflow is:
+The workbench supports reviewers who need a consistent way to inspect AI Builder submissions against a shared rubric. The intended UI flow is:
 
-1. Load or paste a synthetic work sample.
-2. Use AI-assisted extraction to organize candidate-provided evidence by rubric dimension.
-3. Verify extracted quotes with deterministic substring checks.
-4. Review the submission against five rubric dimensions.
-5. Record manual signals and reviewer notes separately from AI extraction.
-6. Generate and download a Markdown audit summary.
+1. **Submission:** Load or paste a synthetic work sample and run evidence extraction.
+2. **AI Evidence:** Inspect AI-assisted evidence organized by rubric dimension with deterministic quote verification.
+3. **Human Review:** Record manual signals and reviewer notes separately from AI extraction.
+4. **Export:** Generate, preview, and download a Markdown audit summary.
 
 The AI extraction is only a reviewer aid. Human reviewers remain responsible for all consequential judgments.
 
@@ -77,12 +75,12 @@ streamlit run app.py
 
 ## Demo Flow
 
-1. Run the Streamlit app.
-2. Select a synthetic submission.
-3. Extract evidence.
-4. Inspect deterministic quote verification.
-5. Enter manual reviewer signals and notes.
-6. Generate and download the Markdown summary.
+1. Run the Streamlit app and note the header, decision boundary, and workflow indicator.
+2. In the sidebar, select a synthetic submission or choose the custom submission option.
+3. On **1. Submission**, review or paste the work sample and select **Extract Evidence**.
+4. On **2. AI Evidence**, inspect the AI-assisted summary, rubric-dimension evidence, and verified/unverified quote labels.
+5. On **3. Human Review**, enter human reviewer signals and notes.
+6. On **4. Export**, generate, preview, and download the Markdown summary.
 
 ## Current Status
 
