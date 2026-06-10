@@ -1,0 +1,8 @@
+purpose: Shared reviewer considerations for discussing the AI Builder scenario consistently.
+not_secret_scoring_criteria: true
+considerations:
+  - Look for a concrete user, workflow, and scope boundary rather than a broad AI idea.
+  - Check whether implementation details are inspectable enough to prototype locally.
+  - Notice human-AI handoffs, failure modes, and operational dependencies.
+  - Confirm responsible AI boundaries preserve human accountability.
+  - Ask whether tradeoffs, assumptions, and next steps are clear to stakeholders.

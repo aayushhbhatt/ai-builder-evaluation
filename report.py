@@ -62,6 +62,7 @@ def build_markdown_report(
     verified_extraction: dict,
     reviewer_assessment: dict,
     rubric: dict,
+    review_metadata: dict | None = None,
 ) -> str:
     """Build a deterministic Markdown review summary for human reviewers.
 
@@ -77,6 +78,7 @@ def build_markdown_report(
         reviewer_assessment if isinstance(reviewer_assessment, dict) else {}
     )
     rubric = rubric if isinstance(rubric, dict) else {}
+    review_metadata = review_metadata if isinstance(review_metadata, dict) else None
 
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     scenario_title = _safe_text(scenario.get("title"), "Untitled scenario")
@@ -92,6 +94,20 @@ def build_markdown_report(
         f"- **Scenario:** {scenario_title}",
         f"- **Submission:** {_safe_text(submission_name, 'Unnamed submission')}",
         f"- **Generated:** {generated_at}",
+    ]
+
+    if review_metadata:
+        metadata_fields = [
+            ("Application version", review_metadata.get("app_version")),
+            ("Model", review_metadata.get("model")),
+            ("Prompt version", review_metadata.get("prompt_version")),
+            ("Rubric SHA-256", review_metadata.get("rubric_sha256")),
+        ]
+        for label, value in metadata_fields:
+            if value:
+                lines.append(f"- **{label}:** {_safe_text(value)}")
+
+    lines.extend([
         "",
         "## Decision Boundary",
         DECISION_BOUNDARY,
@@ -105,7 +121,7 @@ def build_markdown_report(
         ),
         "",
         "## Evidence and Human Assessment",
-    ]
+    ])
 
     for dimension in rubric_dimensions.values():
         if not isinstance(dimension, dict):

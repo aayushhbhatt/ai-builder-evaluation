@@ -1,38 +1,52 @@
 import hashlib
+import os
 from pathlib import Path
 
 import streamlit as st
 
 from criteria import load_rubric
-from extractor import extract_evidence
+from extractor import DEFAULT_MODEL, PROMPT_VERSION, extract_evidence
 from report import build_markdown_report
 from verifier import verify_extraction
 
 APP_TITLE = "AI Builder Reviewer Workbench"
+APP_VERSION = "0.1.0"
+BASE_DIR = Path(__file__).resolve().parent
 DECISION_BOUNDARY = (
     "This tool does not rank, reject, recommend, or select candidates. "
     "Human reviewers remain responsible for all evaluation judgments."
 )
-RUBRIC_PATH = "criteria/ai_builder_rubric.yaml"
+RUBRIC_PATH = BASE_DIR / "criteria" / "ai_builder_rubric.yaml"
+SCENARIO_PATH = BASE_DIR / "scenario" / "ai_builder_scenario.md"
 SAMPLE_PATHS = {
-    "Strong synthetic submission": "sample_submissions/strong_submission.txt",
-    "Shallow synthetic submission": "sample_submissions/shallow_submission.txt",
+    "Strong synthetic submission": BASE_DIR / "sample_submissions" / "strong_submission.txt",
+    "Shallow synthetic submission": BASE_DIR / "sample_submissions" / "shallow_submission.txt",
 }
 MANUAL_SIGNAL_OPTIONS = ["Not assessed", "Weak", "Solid", "Strong"]
 
-SCENARIO_TITLE = "Enterprise AI Builder Scenario"
-SCENARIO = """
-An enterprise operations team is reviewing short AI Builder work samples. Reviewers
-need a consistent way to inspect evidence about problem framing, execution,
-workflow fit, responsible AI boundaries, and communication of tradeoffs. The
-workbench helps reviewers organize evidence and notes without making candidate
-selection decisions.
-"""
 
-
-def load_text_file(path: str) -> str:
+def load_text_file(path: str | Path) -> str:
     """Load a UTF-8 text file for display in the app."""
     return Path(path).read_text(encoding="utf-8")
+
+
+def scenario_title_from_text(scenario_text: str) -> str:
+    """Return the first Markdown heading from the shared scenario text."""
+    for line in scenario_text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            return stripped.lstrip("#").strip() or "Enterprise AI Builder Scenario"
+    return "Enterprise AI Builder Scenario"
+
+
+def build_review_metadata() -> dict[str, str]:
+    """Build non-secret provenance metadata for review exports."""
+    return {
+        "app_version": APP_VERSION,
+        "model": os.getenv("OPENAI_MODEL", DEFAULT_MODEL),
+        "prompt_version": PROMPT_VERSION,
+        "rubric_sha256": hashlib.sha256(RUBRIC_PATH.read_bytes()).hexdigest(),
+    }
 
 
 def apply_dark_theme() -> None:
@@ -125,6 +139,20 @@ def apply_dark_theme() -> None:
         textarea::placeholder, input::placeholder {
             color: #94a3b8 !important;
         }
+        [data-testid="stTextArea"] textarea:disabled,
+        [data-testid="stTextArea"] textarea[disabled],
+        [data-testid="stTextArea"] textarea[aria-disabled="true"] {
+            background: #020617 !important;
+            color: #f8fafc !important;
+            -webkit-text-fill-color: #f8fafc !important;
+            opacity: 1 !important;
+            border-color: #cbd5e1 !important;
+        }
+        [data-testid="stTextArea"] div:has(textarea:disabled),
+        [data-testid="stTextArea"] div:has(textarea[disabled]),
+        [data-testid="stTextArea"] div:has(textarea[aria-disabled="true"]) {
+            opacity: 1 !important;
+        }
         div.stButton > button,
         div.stDownloadButton > button {
             background: #f8fafc !important;
@@ -159,12 +187,12 @@ def apply_dark_theme() -> None:
     )
 
 
-def render_sidebar() -> None:
+def render_sidebar(scenario_title: str, scenario_text: str) -> None:
     """Render compact sidebar context without hiding the scenario in an expander."""
     with st.sidebar:
         st.divider()
-        st.subheader(SCENARIO_TITLE)
-        st.write(SCENARIO)
+        st.subheader(scenario_title)
+        st.write(scenario_text)
 
 
 def render_page_header() -> None:
@@ -329,7 +357,7 @@ def reset_submission_state_if_changed(
         st.session_state.pop(f"notes_{dimension_id}", None)
 
 
-def render_submission_section(selection: str, rubric: dict) -> str:
+def render_submission_section(selection: str, rubric: dict, scenario_text: str) -> str:
     """Render submission input and extraction action while preserving widget behavior."""
     st.header("1. Submission")
     st.caption(
@@ -361,7 +389,7 @@ def render_submission_section(selection: str, rubric: dict) -> str:
         st.session_state.pop("markdown_report", None)
         with st.spinner("Extracting and verifying evidence for human review..."):
             try:
-                extraction = extract_evidence(submission_text, rubric)
+                extraction = extract_evidence(submission_text, rubric, scenario_text)
                 st.session_state["extraction"] = extraction
                 st.session_state["verified_extraction"] = verify_extraction(
                     extraction, submission_text
@@ -372,7 +400,9 @@ def render_submission_section(selection: str, rubric: dict) -> str:
     return submission_text
 
 
-def render_report_export_section(rubric: dict, selection: str) -> None:
+def render_report_export_section(
+    rubric: dict, selection: str, scenario_title: str, scenario_text: str
+) -> None:
     """Render Markdown report generation, preview, and download controls."""
     st.header("4. Export")
     st.caption(
@@ -387,11 +417,12 @@ def render_report_export_section(rubric: dict, selection: str) -> None:
 
     if st.button("Generate Review Summary"):
         st.session_state["markdown_report"] = build_markdown_report(
-            scenario={"title": SCENARIO_TITLE, "description": SCENARIO.strip()},
+            scenario={"title": scenario_title, "description": scenario_text.strip()},
             submission_name=selection,
             verified_extraction=verified_extraction,
             reviewer_assessment=st.session_state.get("reviewer_assessment", {}),
             rubric=rubric,
+            review_metadata=build_review_metadata(),
         )
 
     markdown_report = st.session_state.get("markdown_report")
@@ -420,8 +451,10 @@ def main() -> None:
     apply_dark_theme()
 
     try:
-        rubric = load_rubric(RUBRIC_PATH)
-    except ValueError as error:
+        rubric = load_rubric(str(RUBRIC_PATH))
+        scenario_text = load_text_file(SCENARIO_PATH)
+        scenario_title = scenario_title_from_text(scenario_text)
+    except (OSError, ValueError) as error:
         st.error(str(error))
         st.stop()
 
@@ -436,9 +469,9 @@ def main() -> None:
     )
 
     render_page_header()
-    render_sidebar()
+    render_sidebar(scenario_title, scenario_text)
 
-    render_submission_section(selection, rubric)
+    render_submission_section(selection, rubric, scenario_text)
 
     st.divider()
     verified_extraction = st.session_state.get("verified_extraction")
@@ -454,7 +487,7 @@ def main() -> None:
     render_reviewer_section(rubric)
 
     st.divider()
-    render_report_export_section(rubric, selection)
+    render_report_export_section(rubric, selection, scenario_title, scenario_text)
 
 
 if __name__ == "__main__":
