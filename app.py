@@ -36,7 +36,10 @@ def render_reviewer_section(rubric: dict) -> None:
     st.header("Reviewer Section")
     st.caption("Manual signals are reviewer-entered notes, not automated scores.")
 
-    for key, dimension in rubric["dimensions"].items():
+    reviewer_inputs = st.session_state.setdefault("reviewer_inputs", {})
+
+    for dimension in rubric["dimensions"].values():
+        dimension_id = dimension["id"]
         with st.container(border=True):
             st.subheader(dimension["name"])
             st.write(dimension["description"])
@@ -46,16 +49,17 @@ def render_reviewer_section(rubric: dict) -> None:
                 st.markdown(f"**Solid:** {dimension['solid_anchor']}")
                 st.markdown(f"**Strong:** {dimension['strong_anchor']}")
 
-            st.selectbox(
+            signal = st.selectbox(
                 "Manual signal",
                 MANUAL_SIGNAL_OPTIONS,
-                key=f"signal_{key}",
+                key=f"signal_{dimension_id}",
             )
-            st.text_area(
+            notes = st.text_area(
                 "Reviewer notes",
-                key=f"notes_{key}",
+                key=f"notes_{dimension_id}",
                 placeholder="Add human reviewer observations, evidence references, and open questions.",
             )
+            reviewer_inputs[dimension_id] = {"signal": signal, "notes": notes}
 
 
 def main() -> None:
