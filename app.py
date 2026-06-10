@@ -68,17 +68,41 @@ def apply_dark_theme() -> None:
             color: #f8fafc !important;
         }
         div[data-testid="stVerticalBlockBorderWrapper"],
-        details[data-testid="stExpander"] {
-            background: #111827;
+        details[data-testid="stExpander"],
+        details[data-testid="stExpander"] summary {
+            background: #111827 !important;
             border-color: #334155 !important;
         }
-        details[data-testid="stExpander"] summary p {
-            color: #f8fafc !important;
+        details[data-testid="stExpander"] summary:hover,
+        details[data-testid="stExpander"] summary:focus,
+        details[data-testid="stExpander"] summary:focus-visible {
+            background: #111827 !important;
+            outline-color: #475569 !important;
         }
-        textarea, input, [data-baseweb="select"] > div {
+        details[data-testid="stExpander"] summary p,
+        details[data-testid="stExpander"] summary svg {
+            color: #f8fafc !important;
+            fill: #f8fafc !important;
+        }
+        textarea, input, [data-baseweb="select"] > div,
+        [data-baseweb="popover"] [role="listbox"],
+        [data-baseweb="popover"] ul,
+        [data-baseweb="menu"] {
             background: #020617 !important;
             color: #f8fafc !important;
             border-color: #475569 !important;
+        }
+        [data-baseweb="popover"] [role="option"],
+        [data-baseweb="popover"] li,
+        [data-baseweb="menu"] li {
+            background: #020617 !important;
+            color: #f8fafc !important;
+        }
+        [data-baseweb="popover"] [role="option"]:hover,
+        [data-baseweb="popover"] li:hover,
+        [data-baseweb="menu"] li:hover {
+            background: #1f2937 !important;
+            color: #f8fafc !important;
         }
         textarea::placeholder, input::placeholder {
             color: #94a3b8 !important;
