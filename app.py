@@ -3,6 +3,7 @@ from pathlib import Path
 import streamlit as st
 
 from criteria import load_rubric
+from extractor import extract_evidence
 
 APP_TITLE = "AI Builder Reviewer Workbench"
 DECISION_BOUNDARY = (
@@ -29,6 +30,62 @@ selection decisions.
 def load_text_file(path: str) -> str:
     """Load a UTF-8 text file for display in the app."""
     return Path(path).read_text(encoding="utf-8")
+
+
+def render_extraction_section(extraction: dict) -> None:
+    """Render AI-assisted evidence extraction separately from reviewer inputs."""
+    st.header("AI-Assisted Evidence Extraction")
+    st.warning(
+        "Quotes are AI-extracted and have not yet been deterministically verified. "
+        "Reviewer must inspect before relying on them.",
+        icon="⚠️",
+    )
+
+    candidate_summary = extraction.get("candidate_summary")
+    if candidate_summary:
+        st.subheader("Candidate Summary")
+        st.write(candidate_summary)
+
+    for dimension in extraction.get("dimensions", []):
+        dimension_name = dimension.get(
+            "dimension_name", dimension.get("dimension_id", "Rubric dimension")
+        )
+        with st.container(border=True):
+            st.subheader(dimension_name)
+
+            evidence_items = dimension.get("evidence", [])
+            if evidence_items:
+                st.markdown("**Extracted evidence**")
+                for index, evidence in enumerate(evidence_items, start=1):
+                    st.markdown(f"**Claim {index}:** {evidence.get('claim', '')}")
+                    quote = evidence.get("quote", "")
+                    if quote:
+                        st.markdown(f"> {quote}")
+                    st.markdown(f"**Relevance:** {evidence.get('relevance', '')}")
+            else:
+                st.caption("No evidence extracted for this dimension.")
+
+            missing_or_weak = dimension.get("missing_or_weak_evidence", [])
+            if missing_or_weak:
+                st.markdown("**Missing or weak evidence**")
+                for item in missing_or_weak:
+                    st.markdown(f"- {item}")
+
+            follow_up_questions = dimension.get("follow_up_questions", [])
+            if follow_up_questions:
+                st.markdown("**Follow-up questions**")
+                for question in follow_up_questions:
+                    st.markdown(f"- {question}")
+
+    overall_questions = extraction.get("overall_follow_up_questions", [])
+    if overall_questions:
+        st.subheader("Overall Follow-Up Questions")
+        for question in overall_questions:
+            st.markdown(f"- {question}")
+
+    boundary_notice = extraction.get("ai_boundary_notice")
+    if boundary_notice:
+        st.info(boundary_notice, icon="🧑‍⚖️")
 
 
 def render_reviewer_section(rubric: dict) -> None:
@@ -101,14 +158,16 @@ def main() -> None:
         placeholder="Paste a synthetic or anonymized AI Builder work sample here.",
     )
 
-    st.button(
-        "Extract Evidence",
-        disabled=True,
-        help="Placeholder for a later milestone. No automated extraction runs in this skeleton.",
-    )
-    st.caption(
-        "Evidence extraction is not implemented yet. This app currently supports manual review only."
-    )
+    if st.button("Extract Evidence"):
+        st.session_state.pop("extraction", None)
+        with st.spinner("Extracting evidence for human review..."):
+            try:
+                st.session_state["extraction"] = extract_evidence(submission_text, rubric)
+            except RuntimeError as error:
+                st.error(str(error))
+
+    if st.session_state.get("extraction"):
+        render_extraction_section(st.session_state["extraction"])
 
     render_reviewer_section(rubric)
 
