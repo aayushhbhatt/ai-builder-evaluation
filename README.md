@@ -8,7 +8,7 @@ AI Builder Reviewer Workbench is a local Streamlit MVP for helping human reviewe
 
 The workbench supports reviewers who need a consistent way to inspect AI Builder submissions against a shared rubric. The intended UI flow is:
 
-1. **Submission:** Load or paste a synthetic work sample and run evidence extraction.
+1. **Submission:** Load the shared scenario, then load or paste a synthetic work sample and run evidence extraction.
 2. **AI Evidence:** Inspect AI-assisted evidence and deterministic quote verification.
 3. **Human Review:** Record manual signals and reviewer notes.
 4. **Export:** Generate, preview, and download the Markdown summary.
@@ -27,7 +27,7 @@ Milestone 5 completes the local MVP workflow: repository skeleton, Streamlit she
 - LLM-based evidence extraction that returns candidate summary, evidence by rubric dimension, missing or weak evidence, and follow-up questions.
 - Deterministic substring verification that checks whether each extracted quote appears in the original submission.
 - Clear verification status for each extracted evidence item so reviewers can inspect verified and unverified quotes.
-- Exportable Markdown review summary that includes AI-assisted evidence, quote verification, human-entered signals and notes, and follow-up questions.
+- Exportable Markdown review summary that includes AI-assisted evidence, quote verification, human-entered signals and notes, follow-up questions, and non-secret provenance metadata (application version, configured model, prompt version, and rubric SHA-256).
 
 ## Explicit Non-Goals
 
@@ -47,7 +47,17 @@ This project is not any of the following:
 
 This tool does not rank, reject, recommend, or select candidates. Human reviewers remain responsible for all evaluation judgments.
 
-The app should support evidence-based human review. It must not produce automated scores, rankings, recommendations, hire/no-hire decisions, or pass/fail outputs.
+The app should support evidence-based human review. It must not produce automated scores, rankings, recommendations, hire/no-hire decisions, or pass/fail outputs. It must not infer protected characteristics.
+
+## Prompt, Verification, and Auditability
+
+Evidence extraction separates trusted scenario/rubric inputs from the untrusted candidate submission with explicit XML-style delimiters. The prompt tells the model that candidate text is data to analyze, not instructions to follow. These delimiters are a prompt-injection mitigation, not complete protection, so reviewers must still inspect outputs and quote context.
+
+Quote verification confirms that an extracted quote is present in the submitted source text after normalization, including common Unicode punctuation variants. It does not prove that the model interpreted the quote correctly or that the quote is sufficient evidence for a rubric judgment.
+
+Exports include non-secret provenance fields: application version, configured model, prompt version, and the SHA-256 hash of the rubric file bytes. These fields support reproducibility and audit review without exporting API keys, secrets, or environment contents.
+
+The shared reviewer considerations in `scenario/reviewer_considerations.yaml` are discussion aids for consistent review, not secret scoring criteria. Humans remain responsible for applying the rubric and making all judgments.
 
 ## Setup Instructions
 
@@ -76,15 +86,16 @@ streamlit run app.py
 ## Demo Flow
 
 1. Run the Streamlit app and note the dark, single-page workflow with the decision boundary visible in the header.
-2. In the sidebar, select a synthetic submission or choose the custom submission option; the scenario remains visible in the sidebar.
-3. In **1. Submission**, review or paste the work sample and select **Extract Evidence**.
-4. In **2. AI Evidence**, inspect the AI-assisted summary, rubric-dimension evidence, and verified/unverified quote labels.
+2. Review the shared scenario in the sidebar.
+3. Select **Strong synthetic submission** and choose **Extract Evidence**.
+4. In **2. AI Evidence**, inspect the AI-assisted summary, rubric-dimension evidence, and Unicode-aware verified/unverified quote labels.
 5. In **3. Human Review**, enter human reviewer signals and notes.
-6. In **4. Export**, generate, preview, and download the Markdown summary.
+6. In **4. Export**, generate and preview the Markdown summary, including application version, configured model, prompt version, and rubric SHA-256 provenance metadata.
+7. Briefly switch to **Shallow synthetic submission** to show session-state isolation and the contrast in extracted evidence.
 
 ## Current Status
 
-Milestone 5 complete: the complete MVP workflow is operational. The app runs locally, loads synthetic submissions or custom text, validates the YAML rubric through `criteria.py`, provides manual reviewer controls, calls the OpenAI API to extract structured evidence, verifies extracted quotes deterministically, preserves reviewer assessment in Streamlit session state, and generates an exportable Markdown review summary.
+Hardening update: the complete MVP workflow is operational with prompt instruction/data separation, shared scenario files, Unicode-aware quote verification, and export provenance metadata. The app runs locally, loads synthetic submissions or custom text, validates the YAML rubric through `criteria.py`, provides manual reviewer controls, calls the OpenAI API to extract structured evidence, verifies extracted quotes deterministically, preserves reviewer assessment in Streamlit session state, and generates an exportable Markdown review summary.
 
 AI extracts evidence from the submission. Code then verifies whether each extracted quote appears in the original submission using deterministic normalized substring matching. Verified quotes are marked as found, and unverified quotes are flagged for reviewer inspection before use. Manual reviewer signals and notes are stored by rubric dimension ID in `st.session_state["reviewer_assessment"]`, and the Markdown export includes those human-entered assessments without converting them to scores.
 

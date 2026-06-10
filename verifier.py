@@ -1,15 +1,40 @@
 from copy import deepcopy
+import unicodedata
 from typing import Any
 
 
 VERIFICATION_METHOD = "normalized_substring_match"
 
 
+UNICODE_PUNCTUATION_TRANSLATION = str.maketrans(
+    {
+        "‘": "'",
+        "’": "'",
+        "‚": "'",
+        "‛": "'",
+        "“": '"',
+        "”": '"',
+        "„": '"',
+        "‟": '"',
+        "‐": "-",
+        "‑": "-",
+        "‒": "-",
+        "–": "-",
+        "—": "-",
+        "―": "-",
+        "…": "...",
+        " ": " ",
+    }
+)
+
+
 def normalize_text(text: str) -> str:
     """Return text normalized for deterministic quote comparison."""
     if text is None:
         text = ""
-    return " ".join(str(text).split()).strip().casefold()
+    normalized = unicodedata.normalize("NFKC", str(text))
+    normalized = normalized.translate(UNICODE_PUNCTUATION_TRANSLATION)
+    return " ".join(normalized.split()).strip().casefold()
 
 
 def verify_quote(quote: str, source_text: str) -> dict[str, Any]:

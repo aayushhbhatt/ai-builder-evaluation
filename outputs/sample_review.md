@@ -4,6 +4,10 @@
 - **Scenario:** Enterprise AI Builder Scenario
 - **Submission:** Synthetic operations assistant work sample
 - **Generated:** 2026-06-10 12:00:00 UTC
+- **Application version:** 0.1.0
+- **Model:** gpt-4.1-mini
+- **Prompt version:** evidence-extraction-v2
+- **Rubric SHA-256:** f871060affa9af9e571797ed8b1624649bc0d6b84032e8831bfc6eb4d15aa341
 
 ## Decision Boundary
 This workbench does not rank, reject, recommend, or select candidates. Human reviewers remain responsible for all evaluation judgments.
