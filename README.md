@@ -15,11 +15,12 @@ The workbench supports reviewers who need a consistent way to inspect AI Builder
 
 ## MVP Scope
 
-Milestone 1 includes only the repo skeleton and Streamlit shell:
+Milestone 2 includes the repo skeleton, Streamlit shell, and rubric-driven reviewer UI:
 
 - Streamlit app with a clear responsible AI decision boundary.
 - Two synthetic sample submissions.
 - YAML rubric with exactly five dimensions.
+- Reviewer UI driven by `criteria/ai_builder_rubric.yaml`.
 - Manual reviewer controls for each rubric dimension.
 - Placeholder modules for extraction, verification, and report generation.
 
@@ -59,7 +60,7 @@ Optionally copy the environment template for future OpenAI integration:
 cp .env.example .env
 ```
 
-Milestone 1 does not call the OpenAI API yet.
+Milestone 2 does not call the OpenAI API yet.
 
 ## Run Command
 
@@ -69,4 +70,4 @@ streamlit run app.py
 
 ## Current Status
 
-Skeleton / milestone 1. The app runs locally, loads synthetic submissions, loads the YAML rubric, and provides manual reviewer controls. Evidence extraction, deterministic quote verification, and full report export are placeholders for future milestones.
+Milestone 2. Rubric registry and reviewer UI are now driven by `criteria/ai_builder_rubric.yaml`. The app runs locally, loads synthetic submissions, validates the YAML rubric through `criteria.py`, and provides manual reviewer controls. Evidence extraction, deterministic quote verification, and full report export are placeholders for future milestones.
