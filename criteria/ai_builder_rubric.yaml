@@ -1,0 +1,31 @@
+dimensions:
+  problem_framing:
+    name: Problem Framing
+    description: Evaluates whether the submission defines a concrete user, workflow, problem, success criteria, and scope boundary for an AI Builder artifact.
+    weak_anchor: Problem is vague, broad, or framed mainly as using AI rather than solving a specific workflow need.
+    solid_anchor: Problem, user, workflow, and expected outcome are mostly clear, with reasonable scope and some measurable success criteria.
+    strong_anchor: Problem is tightly scoped to a specific workflow, with clear user needs, constraints, success measures, and explicit non-goals.
+  builder_execution:
+    name: Builder Execution
+    description: Evaluates the practicality and specificity of the proposed artifact, implementation path, inputs, outputs, and iteration plan.
+    weak_anchor: Implementation details are generic, tool choices are unclear, or the artifact is described mostly at the idea level.
+    solid_anchor: Implementation plan identifies key components, data flow, user interaction, and an achievable path to a working prototype.
+    strong_anchor: Execution plan is concrete and inspectable, with artifact structure, prompts or logic, validation steps, failure handling, and realistic milestones.
+  workflow_systems_thinking:
+    name: Workflow and Systems Thinking
+    description: Evaluates how well the submission accounts for human-AI handoffs, operational fit, edge cases, maintenance, and system dependencies.
+    weak_anchor: Workflow fit is assumed, human review is unclear, and edge cases or operational dependencies are mostly absent.
+    solid_anchor: Workflow steps, handoffs, and common edge cases are described with a plausible plan for adoption and maintenance.
+    strong_anchor: Submission maps the full workflow, identifies upstream and downstream dependencies, defines human checkpoints, and anticipates operational failure modes.
+  responsible_ai:
+    name: Responsible AI
+    description: Evaluates whether the submission identifies appropriate AI boundaries, risks, mitigations, privacy considerations, and human accountability.
+    weak_anchor: Risks are handled with generic statements, or the system appears to automate consequential judgments without adequate safeguards.
+    solid_anchor: Key risks and mitigations are identified, with human oversight and basic privacy or safety boundaries.
+    strong_anchor: Responsible AI boundaries are explicit, including prohibited uses, evidence requirements, verification, privacy limits, bias considerations, and escalation paths.
+  tradeoffs_communication:
+    name: Tradeoffs and Communication
+    description: Evaluates clarity in explaining tradeoffs, assumptions, limitations, alternatives, and next steps to stakeholders.
+    weak_anchor: Communication is mostly promotional, with few limitations, assumptions, or concrete next steps.
+    solid_anchor: Tradeoffs, assumptions, and next steps are explained clearly enough for a stakeholder to review and challenge.
+    strong_anchor: Communication is concise, candid, and decision-useful, with explicit tradeoffs, rejected alternatives, open questions, and prioritized next steps.
