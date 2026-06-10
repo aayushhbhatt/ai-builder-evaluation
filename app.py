@@ -69,18 +69,27 @@ def apply_dark_theme() -> None:
         }
         div[data-testid="stVerticalBlockBorderWrapper"],
         details[data-testid="stExpander"],
-        details[data-testid="stExpander"] summary {
+        details[data-testid="stExpander"] summary,
+        details[data-testid="stExpander"] > div,
+        details[data-testid="stExpander"][open],
+        details[data-testid="stExpander"][open] summary,
+        div[data-testid="stExpanderDetails"] {
             background: #111827 !important;
             border-color: #334155 !important;
         }
         details[data-testid="stExpander"] summary:hover,
         details[data-testid="stExpander"] summary:focus,
-        details[data-testid="stExpander"] summary:focus-visible {
+        details[data-testid="stExpander"] summary:focus-visible,
+        details[data-testid="stExpander"][open] summary:hover,
+        details[data-testid="stExpander"][open] summary:focus,
+        details[data-testid="stExpander"][open] summary:focus-visible {
             background: #111827 !important;
             outline-color: #475569 !important;
         }
         details[data-testid="stExpander"] summary p,
-        details[data-testid="stExpander"] summary svg {
+        details[data-testid="stExpander"] summary svg,
+        div[data-testid="stExpanderDetails"] p,
+        div[data-testid="stExpanderDetails"] li {
             color: #f8fafc !important;
             fill: #f8fafc !important;
         }
