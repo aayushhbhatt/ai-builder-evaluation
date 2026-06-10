@@ -10,24 +10,26 @@ The workbench supports reviewers who need a consistent way to inspect AI Builder
 
 1. Load or paste a synthetic work sample.
 2. Use AI-assisted extraction to organize candidate-provided evidence by rubric dimension.
-3. Review the submission against five rubric dimensions.
-4. Record manual signals and reviewer notes separately from AI extraction.
+3. Verify extracted quotes with deterministic substring checks.
+4. Review the submission against five rubric dimensions.
+5. Record manual signals and reviewer notes separately from AI extraction.
+6. Generate and download a Markdown audit summary.
 
 The AI extraction is only a reviewer aid. Human reviewers remain responsible for all consequential judgments.
 
 ## MVP Scope
 
-Milestone 4 includes the repo skeleton, Streamlit shell, rubric-driven reviewer UI, LLM evidence extraction, and deterministic quote verification:
+Milestone 5 completes the local MVP workflow: repository skeleton, Streamlit shell, rubric-driven reviewer UI, LLM evidence extraction, deterministic quote verification, session-state reviewer assessment, and Markdown review export:
 
 - Streamlit app with a clear responsible AI decision boundary.
 - Two synthetic sample submissions.
 - YAML rubric with exactly five dimensions.
 - Reviewer UI driven by `criteria/ai_builder_rubric.yaml`.
-- Manual reviewer controls for each rubric dimension.
+- Manual reviewer controls for each rubric dimension, preserved in Streamlit session state by rubric dimension ID.
 - LLM-based evidence extraction that returns candidate summary, evidence by rubric dimension, missing or weak evidence, and follow-up questions.
 - Deterministic substring verification that checks whether each extracted quote appears in the original submission.
 - Clear verification status for each extracted evidence item so reviewers can inspect verified and unverified quotes.
-- Placeholder module for report generation.
+- Exportable Markdown review summary that includes AI-assisted evidence, quote verification, human-entered signals and notes, and follow-up questions.
 
 ## Explicit Non-Goals
 
@@ -73,12 +75,19 @@ Set `OPENAI_API_KEY` in `.env`. `OPENAI_MODEL` defaults to `gpt-4.1-mini` if it 
 streamlit run app.py
 ```
 
+## Demo Flow
+
+1. Run the Streamlit app.
+2. Select a synthetic submission.
+3. Extract evidence.
+4. Inspect deterministic quote verification.
+5. Enter manual reviewer signals and notes.
+6. Generate and download the Markdown summary.
+
 ## Current Status
 
-Milestone 4 complete: deterministic quote verification is implemented. The app runs locally, loads synthetic submissions, validates the YAML rubric through `criteria.py`, provides manual reviewer controls, and can call the OpenAI API to extract structured evidence for human reviewers.
+Milestone 5 complete: the complete MVP workflow is operational. The app runs locally, loads synthetic submissions or custom text, validates the YAML rubric through `criteria.py`, provides manual reviewer controls, calls the OpenAI API to extract structured evidence, verifies extracted quotes deterministically, preserves reviewer assessment in Streamlit session state, and generates an exportable Markdown review summary.
 
-AI extracts evidence from the submission. Code then verifies whether each extracted quote appears in the original submission using deterministic normalized substring matching. Verified quotes are marked as found, and unverified quotes are flagged for reviewer inspection before use.
+AI extracts evidence from the submission. Code then verifies whether each extracted quote appears in the original submission using deterministic normalized substring matching. Verified quotes are marked as found, and unverified quotes are flagged for reviewer inspection before use. Manual reviewer signals and notes are stored by rubric dimension ID in `st.session_state["reviewer_assessment"]`, and the Markdown export includes those human-entered assessments without converting them to scores.
 
 Reviewers still make all evaluation judgments. The app does not make candidate decisions and produces no automated score, ranking, recommendation, hire/no-hire decision, rejection, selection, or pass/fail output.
-
-Report export is the next milestone.
