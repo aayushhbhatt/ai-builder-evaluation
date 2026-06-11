@@ -120,24 +120,17 @@ def apply_dark_theme() -> None:
         [data-baseweb="popover"] [role="listbox"],
         [data-baseweb="popover"] ul,
         [data-baseweb="menu"] {
-            background: #020617 !important;
+            background: #1e293b !important; /* Lighter background for better contrast */
             color: #f8fafc !important;
             border-color: #475569 !important;
         }
-        [data-baseweb="popover"] [role="option"],
-        [data-baseweb="popover"] li,
-        [data-baseweb="menu"] li {
-            background: #020617 !important;
-            color: #f8fafc !important;
-        }
-        [data-baseweb="popover"] [role="option"]:hover,
-        [data-baseweb="popover"] li:hover,
-        [data-baseweb="menu"] li:hover {
-            background: #1f2937 !important;
-            color: #f8fafc !important;
-        }
-        textarea::placeholder, input::placeholder {
-            color: #94a3b8 !important;
+        textarea[disabled] {
+            background-color: #F8FAFC !important; /* Lighter background for disabled text area */
+            color: #f8fafc !important; /* Light text color for better contrast */
+            border: 1px solid #4a5568 !important; /* Add border for better visibility */
+            padding: 10px; /* Add padding for better readability */
+            font-family: monospace; /* Use monospace font for better Markdown readability */
+            font-size: 14px; /* Adjust font size for better readability */
         }
         div.stButton > button,
         div.stDownloadButton > button {
@@ -152,7 +145,7 @@ def apply_dark_theme() -> None:
             color: #020617 !important;
             border-color: #f8fafc !important;
         }
-        div.stButton > button *,
+        div.stButton > button * ,
         div.stDownloadButton > button * {
             color: #111827 !important;
         }
@@ -171,7 +164,6 @@ def apply_dark_theme() -> None:
         """,
         unsafe_allow_html=True,
     )
-
 
 def render_sidebar(scenario_title: str, scenario_text: str) -> None:
     """Render compact sidebar context without hiding the scenario in an expander."""
