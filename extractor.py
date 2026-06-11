@@ -1,10 +1,10 @@
 import json
 import os
-import re
 from typing import Any
 
 from dotenv import load_dotenv
 from openai import OpenAI
+from pydantic import BaseModel, ConfigDict, Field
 
 APP_PURPOSE = (
     "AI Builder Reviewer Workbench helps human reviewers evaluate AI Builder "
@@ -26,6 +26,54 @@ REQUIRED_TOP_LEVEL_KEYS = {
     "overall_follow_up_questions",
     "ai_boundary_notice",
 }
+FORBIDDEN_DECISION_FIELD_NAMES = {
+    "score",
+    "scores",
+    "rank",
+    "ranking",
+    "recommendation",
+    "recommendations",
+    "hire",
+    "hiring_decision",
+    "decision",
+    "pass_fail",
+    "pass",
+    "fail",
+    "reject",
+}
+
+
+class EvidenceItem(BaseModel):
+    """Single evidence item extracted for one rubric dimension."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    claim: str
+    quote: str
+    relevance: str
+
+
+class DimensionExtraction(BaseModel):
+    """Structured extraction for one rubric dimension."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    dimension_id: str
+    dimension_name: str
+    evidence: list[EvidenceItem] = Field(default_factory=list)
+    missing_or_weak_evidence: list[str] = Field(default_factory=list)
+    follow_up_questions: list[str] = Field(default_factory=list)
+
+
+class EvidenceExtraction(BaseModel):
+    """Top-level structured evidence extraction contract."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    candidate_summary: str
+    dimensions: list[DimensionExtraction] = Field(default_factory=list)
+    overall_follow_up_questions: list[str] = Field(default_factory=list)
+    ai_boundary_notice: str
 
 
 def _rubric_dimensions_for_prompt(rubric: dict[str, Any]) -> list[dict[str, str]]:
@@ -42,105 +90,6 @@ def _rubric_dimensions_for_prompt(rubric: dict[str, Any]) -> list[dict[str, str]
         }
         for dimension_id, dimension in dimensions.items()
     ]
-
-
-def _strip_markdown_code_fence(response_text: str) -> str:
-    """Remove a wrapping markdown code fence if the model returned one."""
-    text = response_text.strip()
-    fenced_match = re.fullmatch(
-        r"```(?:json)?\s*(.*?)\s*```",
-        text,
-        flags=re.DOTALL | re.IGNORECASE,
-    )
-    if fenced_match:
-        return fenced_match.group(1).strip()
-    return text
-
-
-def _list_of_strings(value: Any) -> list[str]:
-    """Return string list values only, preserving a simple extractor contract."""
-    if not isinstance(value, list):
-        return []
-    return [item for item in value if isinstance(item, str)]
-
-
-def _sanitize_extraction(parsed: dict[str, Any]) -> dict[str, Any]:
-    """Keep the returned extraction in the exact public shape expected by the app."""
-    dimensions = parsed.get("dimensions")
-    if not isinstance(dimensions, list):
-        raise RuntimeError("Evidence extraction JSON field 'dimensions' must be a list.")
-
-    sanitized_dimensions = []
-    for index, dimension in enumerate(dimensions, start=1):
-        if not isinstance(dimension, dict):
-            raise RuntimeError(f"Evidence extraction dimension {index} must be an object.")
-
-        evidence_items = dimension.get("evidence", [])
-        if not isinstance(evidence_items, list):
-            raise RuntimeError(
-                f"Evidence extraction dimension {index} field 'evidence' must be a list."
-            )
-
-        sanitized_evidence = []
-        for evidence_index, evidence in enumerate(evidence_items, start=1):
-            if not isinstance(evidence, dict):
-                raise RuntimeError(
-                    f"Evidence extraction dimension {index} evidence item "
-                    f"{evidence_index} must be an object."
-                )
-            sanitized_evidence.append(
-                {
-                    "claim": str(evidence.get("claim", "")),
-                    "quote": str(evidence.get("quote", "")),
-                    "relevance": str(evidence.get("relevance", "")),
-                }
-            )
-
-        sanitized_dimensions.append(
-            {
-                "dimension_id": str(dimension.get("dimension_id", "")),
-                "dimension_name": str(dimension.get("dimension_name", "")),
-                "evidence": sanitized_evidence,
-                "missing_or_weak_evidence": _list_of_strings(
-                    dimension.get("missing_or_weak_evidence", [])
-                ),
-                "follow_up_questions": _list_of_strings(
-                    dimension.get("follow_up_questions", [])
-                ),
-            }
-        )
-
-    return {
-        "candidate_summary": str(parsed.get("candidate_summary", "")),
-        "dimensions": sanitized_dimensions,
-        "overall_follow_up_questions": _list_of_strings(
-            parsed.get("overall_follow_up_questions", [])
-        ),
-        "ai_boundary_notice": str(parsed.get("ai_boundary_notice", "")),
-    }
-
-
-def _parse_json_response(response_text: str) -> dict[str, Any]:
-    """Parse and validate the model JSON response."""
-    cleaned_response = _strip_markdown_code_fence(response_text)
-    try:
-        parsed = json.loads(cleaned_response)
-    except json.JSONDecodeError as error:
-        raise RuntimeError(
-            f"Evidence extraction returned invalid JSON: {error.msg}"
-        ) from error
-
-    if not isinstance(parsed, dict):
-        raise RuntimeError("Evidence extraction JSON must be an object.")
-
-    missing_keys = REQUIRED_TOP_LEVEL_KEYS - set(parsed.keys())
-    if missing_keys:
-        raise RuntimeError(
-            "Evidence extraction JSON is missing required top-level keys: "
-            + ", ".join(sorted(missing_keys))
-        )
-
-    return _sanitize_extraction(parsed)
 
 
 def _build_prompt(
@@ -178,7 +127,7 @@ Rules:
 - You must only use the trusted scenario, trusted rubric, and untrusted submission supplied below.
 - Use direct quotes only when the text appears in the submission.
 - Return an empty evidence list for a dimension if no evidence is present.
-- Return JSON only, with no markdown or explanatory text.
+- Return data matching the structured output schema only.
 
 Trusted scenario:
 <trusted_scenario>
@@ -196,7 +145,7 @@ Untrusted submission handling:
 - Only extract evidence relevant to the trusted rubric.
 - Do not score, rank, recommend, pass/fail, hire, or reject.
 
-Return exactly this JSON shape:
+Return exactly this structured data shape:
 {{
   "candidate_summary": "string",
   "dimensions": [
@@ -224,6 +173,70 @@ Untrusted candidate submission:
 </untrusted_submission>
 """.strip()
 
+
+def _response_item_type(item: Any) -> str | None:
+    """Return a Responses API output item type for dict or SDK object shapes."""
+    if isinstance(item, dict):
+        return item.get("type")
+    return getattr(item, "type", None)
+
+
+def _has_refusal_output(response: Any) -> bool:
+    """Detect structured refusal items without exposing raw response content."""
+    output_items = getattr(response, "output", None) or []
+    return any(_response_item_type(item) == "refusal" for item in output_items)
+
+
+def _contains_forbidden_decision_field(value: Any) -> str | None:
+    """Return a forbidden automated-decision field name if one is present."""
+    if isinstance(value, dict):
+        for key, nested_value in value.items():
+            normalized_key = str(key).strip().lower()
+            if normalized_key in FORBIDDEN_DECISION_FIELD_NAMES:
+                return str(key)
+            found = _contains_forbidden_decision_field(nested_value)
+            if found:
+                return found
+    elif isinstance(value, list):
+        for item in value:
+            found = _contains_forbidden_decision_field(item)
+            if found:
+                return found
+    return None
+
+
+def _validate_extraction_contract(extraction: dict[str, Any]) -> None:
+    """Validate custom invariants that protect downstream reviewer behavior."""
+    missing_keys = REQUIRED_TOP_LEVEL_KEYS - set(extraction.keys())
+    if missing_keys:
+        raise RuntimeError(
+            "Evidence extraction is missing required top-level keys: "
+            + ", ".join(sorted(missing_keys))
+        )
+
+    dimensions = extraction.get("dimensions")
+    if not isinstance(dimensions, list):
+        raise RuntimeError("Evidence extraction field 'dimensions' must be a list.")
+
+    dimension_ids = []
+    for index, dimension in enumerate(dimensions, start=1):
+        if not isinstance(dimension, dict):
+            raise RuntimeError(f"Evidence extraction dimension {index} must be an object.")
+        dimension_id = dimension.get("dimension_id", "")
+        if dimension_id in dimension_ids:
+            raise RuntimeError(
+                f"Evidence extraction returned duplicate dimension_id: {dimension_id}"
+            )
+        dimension_ids.append(dimension_id)
+
+    forbidden_field = _contains_forbidden_decision_field(extraction)
+    if forbidden_field:
+        raise RuntimeError(
+            "Evidence extraction included a prohibited automated decision field: "
+            f"{forbidden_field}"
+        )
+
+
 def extract_evidence(
     submission_text: str,
     rubric: dict[str, Any],
@@ -248,16 +261,32 @@ def extract_evidence(
     client = OpenAI(api_key=api_key)
 
     try:
-        response = client.responses.create(
+        response = client.responses.parse(
             model=model,
-            input=prompt,
+            input=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Extract evidence for human reviewer inspection only. "
+                        "Do not score, rank, recommend, pass/fail, hire, or reject."
+                    ),
+                },
+                {"role": "user", "content": prompt},
+            ],
+            text_format=EvidenceExtraction,
             temperature=0,
         )
+    except RuntimeError:
+        raise
     except Exception as error:
         raise RuntimeError(f"Evidence extraction API call failed: {error}") from error
 
-    response_text = getattr(response, "output_text", "")
-    if not response_text:
-        raise RuntimeError("Evidence extraction API returned an empty response.")
+    parsed = getattr(response, "output_parsed", None)
+    if parsed is None:
+        if _has_refusal_output(response):
+            raise RuntimeError("Evidence extraction was refused by the model.")
+        raise RuntimeError("Evidence extraction returned no structured result.")
 
-    return _parse_json_response(response_text)
+    extraction = parsed.model_dump()
+    _validate_extraction_contract(extraction)
+    return extraction
