@@ -270,10 +270,11 @@ def render_reviewer_section(rubric: dict) -> None:
 
     reviewer_assessment = st.session_state.setdefault("reviewer_assessment", {})
 
-    for dimension_index, dimension in enumerate(rubric["dimensions"].values()):
+    for dimension in rubric["dimensions"].values():
         dimension_id = dimension["id"]
-        with st.expander(dimension["name"], expanded=dimension_index == 0):
-            st.write(dimension["description"])
+        with st.container(border=True):
+            st.subheader(dimension["name"])
+            st.caption(dimension["description"])
 
             with st.expander("Behavioral anchors"):
                 st.markdown(f"**Weak:** {dimension['weak_anchor']}")
